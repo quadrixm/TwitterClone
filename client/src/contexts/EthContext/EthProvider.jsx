@@ -31,7 +31,7 @@ function EthProvider({ children }) {
   useEffect(() => {
     const tryInit = async () => {
       try {
-        const artifact = require("../../contracts/TwitterClone.json");
+        const artifact = require("../../contracts/InstaChain.json");
         init(artifact);
       } catch (err) {
         console.error(err);

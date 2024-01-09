@@ -1,8 +1,8 @@
 import { useState } from "react";
 import useEth from "../../contexts/EthContext/useEth";
-import ContractBtns from "./ContractBtns";
 import NoticeNoArtifact from "./NoticeNoArtifact";
 import NoticeWrongNetwork from "./NoticeWrongNetwork";
+import InstaForm from "./InstaForm";
 
 function Demo() {
   const { state } = useEth();
@@ -18,7 +18,7 @@ function Demo() {
       </div>
       <div>
         <p>{value} </p>
-        <ContractBtns setValue={setValue} />
+        <InstaForm setValue={setValue} />
       </div>
     </>
 
