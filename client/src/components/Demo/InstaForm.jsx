@@ -1,21 +1,71 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useEth from "../../contexts/EthContext/useEth";
-// const pinataSDK = require('@pinata/sdk');
-// const pinata = new pinataSDK('a03c672af5ea0a119f02', '2deae47984cdb680ba2a9bc3e4d65691382ce9f51c7f875fb0354880686eed52');
+import { Stack } from '../../stack';
+import { myPinata, pinataJwtToken } from '../../ui_env';
 const axios = require('axios');
 
-const jwtToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJiYzIwYzdmNi1kY2NjLTQwNzYtOGI3Yi1jM2IwYTAzMDAzY2UiLCJlbWFpbCI6InF1YWRyaXhtQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImlkIjoiRlJBMSIsImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxfSx7ImlkIjoiTllDMSIsImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxfV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiIyODZlMDM2MjRjYzdmMzg5MjEwNCIsInNjb3BlZEtleVNlY3JldCI6IjhjY2VlYzExYWQwNTMxZTc3ZDczNTI5YjYxMDhlMDYxYmI0NTE0YTNkZWExYmZlZjdlOTQzNDI3NzU4ODIyNjAiLCJpYXQiOjE3MDQ3Nzk4OTN9.znQ71IA49zwdqYZk8JY89tbpkd-hpv1WGARZ92v3PUs`;
-
-function InstaForm({ setValue }) {
+// TODO Fix for next after clicking on previous.
+function InstaForm() {
   const { state: { contract, accounts } } = useEth();
   const [post, setPost] = useState("");
   const [userAccount, setUserAccount] = useState("");
-
+  const [ipfsHash, setIpfsHash] = useState("");
+  const [currentHash, setCurrentHash] = useState("");
+  const [prevHash, setPrevHash] = useState("");
   const [selectedFile, setSelectedFile] = useState();
+  const [pinStack, setPinStack] = useState([]);
 
-  const changeHandler = (event) => {
-    setSelectedFile(event.target.files[0]);
+  const fileChangeHandler = (e) => {
+    setSelectedFile(e.target.files[0]);
   };
+
+  const accountCangeHandler = async (e) => {
+    const val = String(e.target.value);
+    setUserAccount(val);
+    const hash = await contract.methods.get(val).call({ from: val }) ?? '';
+    console.log({hash});
+    setIpfsHash(hash);
+    setCurrentHash(hash);
+  };
+
+  useEffect(() => {
+    const tryGetPin = async (pinHash) => {
+      try {
+        const res = await axios.get(`https://api.pinata.cloud/data/pinList?includeCount=false&hashContains=${pinHash}`, {
+          maxBodyLength: "Infinity",
+          headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${pinataJwtToken}`
+          }
+        });
+        console.log(res.data.rows);
+
+        if (res.data.rows.length) {
+          const item = res.data.rows[0];
+          if (item.metadata.keyvalues) {
+            setPrevHash(item.metadata.keyvalues.prevHash);
+            const newPinStack = [...pinStack];
+            newPinStack.push({hash: pinHash, post: item.metadata.keyvalues.post});
+            setPinStack(newPinStack);
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    if (currentHash) {
+      tryGetPin(currentHash);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentHash]);
+
+  const handlePreviousClick = async () => {
+    const newPintack = [...pinStack];
+    const newPin = Stack.pop(newPintack);
+    setPrevHash(newPin.hash);
+    setPinStack(newPintack);
+  }
 
   const handleSubmission = async () => {
     // const res = await pinata.testAuthentication()
@@ -30,19 +80,19 @@ function InstaForm({ setValue }) {
       return;
     }
 
-    const prevHash = await contract.methods.get().call({ from: userAccount }) ?? '';
+    // const prevHash = await contract.methods.get().call({ from: userAccount }) ?? '';
 
-    console.log(prevHash);
+    // console.log(prevHash);
 
     const formData = new FormData();
     
-    formData.append('file', selectedFile)
+    formData.append('file', selectedFile);
 
     const metadata = JSON.stringify({
       name: selectedFile.name,
       keyvalues: {
         post,
-        prevHash,
+        prevHash: ipfsHash,
       }
     });
     formData.append('pinataMetadata', metadata);
@@ -57,7 +107,7 @@ function InstaForm({ setValue }) {
         maxBodyLength: "Infinity",
         headers: {
           'Content-Type': `multipart/form-data; boundary=${formData._boundary}`,
-          Authorization: `Bearer ${jwtToken}`
+          Authorization: `Bearer ${pinataJwtToken}`
         }
       });
       console.log(res.data.IpfsHash);
@@ -73,24 +123,38 @@ function InstaForm({ setValue }) {
 
   return (
     <div className="btns">
-      <select onChange={(e) => setUserAccount(String(e.target.value))}>
+      <select onChange={accountCangeHandler}>
         <option>Select Option</option>
         {accounts.map((account) => (
           <option value={account}>{account}</option>
         ))}
       </select>
-      <div className="input-btn">
-        <input
-          type="text"
-          placeholder="Post"
-          value={post}
-          onChange={(e) => setPost(String(e.target.value))}
-        />
-        <input type="file"  onChange={changeHandler}/>
-        <button onClick={handleSubmission}>
-          Submit
-        </button>
-      </div>
+      {userAccount ? (
+        <div className="input-btn">
+          <input
+            type="text"
+            placeholder="Post"
+            value={post}
+            onChange={(e) => setPost(String(e.target.value))}
+          />
+          <input type="file"  onChange={fileChangeHandler}/>
+          <button onClick={handleSubmission}>
+            Submit
+          </button>
+        </div>
+      ) : []}
+      {Stack.peek(pinStack) ? (
+        <div>
+          <img alt={currentHash} src={`https://${myPinata}.mypinata.cloud/ipfs/${Stack.peek(pinStack).hash}`} />
+          <p>{Stack.peek(pinStack).post}</p>
+          {Stack.size(pinStack) > 1 ? (
+            <button onClick={handlePreviousClick}>Previous</button>
+          ) : []}
+          {prevHash ? (
+            <button onClick={(e) => setCurrentHash(prevHash)}>Next</button>
+          ) : []}
+        </div>
+      ) : []}
       <br/><br/>
     </div>
   );

@@ -23,7 +23,7 @@ contract InstaChain {
     emit InstaPosted(_ipfsHash);
   }
 
-  function get() public view returns(string memory) {
-    return instaHash[msg.sender];
+  function get(address _user) public view returns(string memory) {
+    return instaHash[_user];
   }
 }

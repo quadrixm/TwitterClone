@@ -1,4 +1,3 @@
-import { useState } from "react";
 import useEth from "../../contexts/EthContext/useEth";
 import NoticeNoArtifact from "./NoticeNoArtifact";
 import NoticeWrongNetwork from "./NoticeWrongNetwork";
@@ -6,7 +5,6 @@ import InstaForm from "./InstaForm";
 
 function Demo() {
   const { state } = useEth();
-  const [value, setValue] = useState("?");
 
   const demo =
     <>
@@ -17,8 +15,7 @@ function Demo() {
         </p>
       </div>
       <div>
-        <p>{value} </p>
-        <InstaForm setValue={setValue} />
+        <InstaForm />
       </div>
     </>
 
