@@ -19,7 +19,7 @@ function InstaForm() {
     setSelectedFile(e.target.files[0]);
   };
 
-  const accountCangeHandler = async (e) => {
+  const accountChangeHandler = async (e) => {
     const val = String(e.target.value);
     setUserAccount(val);
     const hash = await contract.methods.get(val).call({ from: val }) ?? '';
@@ -122,40 +122,50 @@ function InstaForm() {
   };
 
   return (
-    <div className="btns">
-      <select onChange={accountCangeHandler}>
-        <option>Select Option</option>
-        {accounts.map((account) => (
-          <option value={account}>{account}</option>
-        ))}
-      </select>
-      {userAccount ? (
-        <div className="input-btn">
-          <input
-            type="text"
-            placeholder="Post"
-            value={post}
-            onChange={(e) => setPost(String(e.target.value))}
-          />
-          <input type="file"  onChange={fileChangeHandler}/>
-          <button onClick={handleSubmission}>
-            Submit
-          </button>
-        </div>
-      ) : []}
-      {Stack.peek(pinStack) ? (
-        <div>
-          <img alt={currentHash} src={`https://${myPinata}.mypinata.cloud/ipfs/${Stack.peek(pinStack).hash}`} />
-          <p>{Stack.peek(pinStack).post}</p>
-          {Stack.size(pinStack) > 1 ? (
-            <button onClick={handlePreviousClick}>Previous</button>
-          ) : []}
-          {prevHash ? (
-            <button onClick={(e) => setCurrentHash(prevHash)}>Next</button>
-          ) : []}
-        </div>
-      ) : []}
-      <br/><br/>
+    <div className="container mx-auto p-4">
+      <div className="flex flex-col gap-4">
+        <select onChange={accountChangeHandler} className="p-2 border border-gray-300 rounded">
+          <option>Select Option</option>
+          {accounts.map((account) => (
+            <option value={account}>{account}</option>
+          ))}
+        </select>
+
+        {userAccount && (
+          <div className="flex gap-4 items-center">
+            <input
+              type="text"
+              placeholder="Post"
+              value={post}
+              onChange={(e) => setPost(String(e.target.value))}
+              className="flex-grow p-2 border border-gray-300 rounded"
+            />
+            <input type="file" onChange={fileChangeHandler} className="file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+            <button onClick={handleSubmission} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+              Submit
+            </button>
+          </div>
+        )}
+
+        {Stack.peek(pinStack) && (
+          <div className="flex flex-col items-center gap-4">
+            <img alt={currentHash} src={`https://${myPinata}.mypinata.cloud/ipfs/${Stack.peek(pinStack).hash}`} className="max-w-xs rounded-lg shadow-md"/>
+            <p>{Stack.peek(pinStack).post}</p>
+            <div className="flex gap-2">
+              {Stack.size(pinStack) > 1 && (
+                <button onClick={handlePreviousClick} className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                  Previous
+                </button>
+              )}
+              {prevHash && (
+                <button onClick={(e) => setCurrentHash(prevHash)} className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                  Next
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
